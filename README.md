@@ -1,70 +1,183 @@
-# Getting Started with Create React App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# React Deploy AWS
 
-## Available Scripts
+This project demonstrates the step-by-step process of deploying a React application to an AWS EC2 instance. The primary purpose is to serve as a guide for setting up and hosting a web application on AWS using Nginx and a self-signed SSL certificate.
 
-In the project directory, you can run:
+## Table of Contents
 
-### `npm start`
+1. [Project Setup](#project-setup)
+2. [AWS EC2 Instance Configuration](#aws-ec2-instance-configuration)
+3. [Deploying the React App](#deploying-the-react-app)
+4. [Configuring Nginx](#configuring-nginx)
+5. [Setting Up SSL with a Self-Signed Certificate](#setting-up-ssl-with-a-self-signed-certificate)
+6. [Testing the Application](#testing-the-application)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+---
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Project Setup
 
-### `npm test`
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/slavapa/react-deploy-aws.git
+   cd react-deploy-aws
+   ```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-### `npm run build`
+3. Build the project for production:
+   ```bash
+   npm run build
+   ```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The `build` directory contains the static files required for deployment.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## AWS EC2 Instance Configuration
 
-### `npm run eject`
+1. **Create an EC2 Instance:**
+   - Choose an **Amazon Linux 2023** AMI.
+   - Instance type: `t2.micro` (Free Tier eligible).
+   - Attach a security group with the following rules:
+     - Port 22 (SSH): Allow from your IP address.
+     - Port 80 (HTTP): Allow from anywhere.
+     - Port 443 (HTTPS): Allow from anywhere.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+2. **Allocate an Elastic IP:**
+   - Allocate an Elastic IP and associate it with your EC2 instance.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+3. **Connect to the Instance:**
+   Use SSH to connect to your instance:
+   ```bash
+   ssh -i /path/to/key.pem ec2-user@<your-elastic-ip>
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+---
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Deploying the React App
 
-## Learn More
+1. **Install Required Packages:**
+   ```bash
+   sudo yum update -y
+   sudo yum install -y nginx git nodejs
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+2. **Copy the React Build Files to the Server:**
+   - Create a directory for your application:
+     ```bash
+     mkdir -p /home/ec2-user/projects/react-deploy-aws
+     ```
+   - Copy the `build` folder to the instance (from your local machine):
+     ```bash
+     scp -i /path/to/key.pem -r build ec2-user@<your-elastic-ip>:/home/ec2-user/projects/react-deploy-aws/
+     ```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+3. **Set Correct Permissions:**
+   ```bash
+   sudo chown -R nginx:nginx /home/ec2-user/projects/react-deploy-aws
+   sudo chmod -R 755 /home/ec2-user/projects/react-deploy-aws
+   ```
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Configuring Nginx
 
-### Analyzing the Bundle Size
+1. **Edit the Nginx Configuration File:**
+   ```bash
+   sudo vim /etc/nginx/conf.d/react-deploy-aws.conf
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+   Add the following content:
+   ```nginx
+   server {
+       listen 80;
+       server_name <your-elastic-ip>;
 
-### Making a Progressive Web App
+       location / {
+           root /home/ec2-user/projects/react-deploy-aws/build;
+           index index.html;
+           try_files $uri /index.html;
+       }
+   }
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+2. **Test and Restart Nginx:**
+   ```bash
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
 
-### Advanced Configuration
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Setting Up SSL with a Self-Signed Certificate
 
-### Deployment
+1. **Create SSL Directories:**
+   ```bash
+   sudo mkdir -p /etc/ssl/private
+   sudo mkdir -p /etc/ssl/certs
+   ```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+2. **Generate a Self-Signed Certificate:**
+   ```bash
+   sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048        -keyout /etc/ssl/private/nginx-selfsigned.key        -out /etc/ssl/certs/nginx-selfsigned.crt
+   ```
 
-### `npm run build` fails to minify
+   Use your Elastic IP as the `Common Name`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+3. **Update Nginx Configuration:**
+   Edit `/etc/nginx/conf.d/react-deploy-aws.conf`:
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name <your-elastic-ip>;
+
+       ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+       ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+       location / {
+           root /home/ec2-user/projects/react-deploy-aws/build;
+           index index.html;
+           try_files $uri /index.html;
+       }
+   }
+
+   server {
+       listen 80;
+       server_name <your-elastic-ip>;
+       return 301 https://$host$request_uri;
+   }
+   ```
+
+4. **Test and Restart Nginx:**
+   ```bash
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+---
+
+## Testing the Application
+
+1. Access the application in your browser:
+   - HTTP: `http://<your-elastic-ip>`
+   - HTTPS: `https://<your-elastic-ip>` (you will see a browser warning due to the self-signed certificate).
+
+2. Confirm that the app loads successfully.
+
+---
+
+## Notes
+
+- The project is for demonstration purposes only and uses a self-signed SSL certificate. For production, use a proper domain and obtain an SSL certificate from a trusted Certificate Authority.
+- Remember to set `SELinux` to permissive mode if needed:
+  ```bash
+  sudo setenforce 0
+  ```
+
+---
+
+This concludes the setup for deploying a React application to AWS with Nginx and SSL.
+
