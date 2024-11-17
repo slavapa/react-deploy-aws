@@ -1,4 +1,5 @@
 
+
 # React Deploy AWS
 
 This project demonstrates the step-by-step process of deploying a React application to an AWS EC2 instance. The primary purpose is to serve as a guide for setting up and hosting a web application on AWS using Nginx and a self-signed SSL certificate.
@@ -180,4 +181,71 @@ The `build` directory contains the static files required for deployment.
 ---
 
 This concludes the setup for deploying a React application to AWS with Nginx and SSL.
+
+
+
+## Additional Instructions for Deployment
+
+### 1. Create Project Directory and Clone Repository
+```bash
+mkdir projects
+cd projects
+git clone <repository-url>
+cd <project-directory>
+```
+
+### 2. Update Nginx Configuration
+1. Edit the Nginx configuration file to increase `server_names_hash_bucket_size`:
+   ```bash
+   sudo vim /etc/nginx/nginx.conf
+   ```
+2. Add the following line inside the `http` block:
+   ```nginx
+   server_names_hash_bucket_size 256;
+   ```
+3. Test and restart Nginx:
+   ```bash
+   sudo nginx -t
+   sudo systemctl restart nginx
+   ```
+
+### 3. Configure EC2 Volume
+- **Set Volume Size**: Allocate at least **16GB** for your EC2 instance.
+
+### 4. Add Swap Space (2 GiB)
+1. Create and enable a swap file:
+   ```bash
+   sudo fallocate -l 2G /swapfile
+   sudo chmod 600 /swapfile
+   sudo mkswap /swapfile
+   sudo swapon /swapfile
+   ```
+2. Make the swap permanent by adding it to `/etc/fstab`:
+   ```bash
+   echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+   ```
+
+### 5. Optimize `npm install`
+- To avoid memory issues during `npm install`, run:
+  ```bash
+  npm install --max-old-space-size=256
+  ```
+
+### 6. Long-Term Solution (Avoid Using `sudo`)
+1. Configure npm to avoid global permission issues:
+   ```bash
+   mkdir ~/.npm-global
+   npm config set prefix '~/.npm-global'
+   ```
+2. Update the `PATH` to include the new npm global directory:
+   ```bash
+   echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+### 7. Fix File and Directory Ownership
+- Ensure the correct ownership of project files and directories:
+  ```bash
+  sudo chown -R ec2-user:ec2-user /path/to/project
+  ```
 
