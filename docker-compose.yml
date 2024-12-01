@@ -1,0 +1,10 @@
+services:
+  react-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80" # Пробрасываем порт 80 из контейнера на 3000 хоста
+    volumes:
+      - ./build:/usr/share/nginx/html # Для синхронизации файлов во время разработки
+    restart: always
