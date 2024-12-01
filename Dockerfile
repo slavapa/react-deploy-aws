@@ -1,29 +1,14 @@
-# Используем базовый образ Node.js
-FROM node:16-alpine as build
-
-# Устанавливаем рабочую директорию
+# Stage 1: Build the React Application
+FROM node:18 as build
 WORKDIR /app
-
-# Копируем package.json и package-lock.json
 COPY package*.json ./
-
-# Устанавливаем зависимости
 RUN npm install
-
-# Копируем исходный код
 COPY . .
-
-# Собираем приложение
 RUN npm run build
 
-# Используем Nginx для обслуживания собранного приложения
-FROM nginx:1.23-alpine
-
-# Копируем собранные файлы в Nginx
+# Stage 2: Setup the Nginx Server to serve the React Application
+FROM nginx:1.25.0-alpine as production
 COPY --from=build /app/build /usr/share/nginx/html
-
-# Открываем порт 80
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
-
-# Запускаем Nginx
 CMD ["nginx", "-g", "daemon off;"]
