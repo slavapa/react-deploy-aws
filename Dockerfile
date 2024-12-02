@@ -1,23 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import 'github-markdown-css';
-import './App.css'; // Add your CSS styles here
+# Build stage
+FROM node:16-alpine as build
+WORKDIR /app
 
-function App() {
-  const [markdown, setMarkdown] = useState('');
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-  useEffect(() => {
-    // fetch('/README.md')
-    //   .then((response) => response.text())
-    //   .then((text) => setMarkdown(text));
-    setMarkdown('# Hello World \n\n # Heading level 1');
-  }, []);
+# Install dependencies
+RUN npm install
 
-  return (
-    <div className="markdown-body" style={{ padding: '20px' }}>
-      <ReactMarkdown>{markdown}</ReactMarkdown>
-    </div>
-  );
-}
+# Copy source files
+COPY . .
 
-export default App;
+# Build the React app
+RUN npm run build && ls -l /app/build  # Add debugging to ensure build output
+
+# Production stage
+FROM nginx:1.23-alpine
+
+# Copy build output to Nginx's HTML directory
+COPY --from=build /app/build /usr/share/nginx/html
+
+RUN mkdir -p /usr/share/nginx/html/devtest && \
+    cp -r /usr/share/nginx/html/static /usr/share/nginx/html/devtest/
+
+# Copy custom nginx configuration
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Expose the container's port
+EXPOSE 80
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
