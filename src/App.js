@@ -7,9 +7,10 @@ function App() {
   const [markdown, setMarkdown] = useState('');
 
   useEffect(() => {
-    fetch('/README.md')
-      .then((response) => response.text())
-      .then((text) => setMarkdown(text));
+    // fetch('/README.md')
+    //   .then((response) => response.text())
+    //   .then((text) => setMarkdown(text));
+    setMarkdown('# Hello World \n\n # Heading level 1');
   }, []);
 
   return (
