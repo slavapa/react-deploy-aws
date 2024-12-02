@@ -1,12 +1,8 @@
-#React app image
-FROM node:lts-alpine as build
+FROM nginx:latest as prod
 
-WORKDIR /app
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
 
-COPY package*.json ./
+EXPOSE 80/tcp
 
-RUN npm ci
-
-COPY . .
-
-RUN npm run build
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
