@@ -1,14 +1,16 @@
-
 # AWS EC2 Instance Configuration for React Application Deployment
 
 This guide provides step-by-step instructions for setting up an AWS EC2 instance to deploy a React application with Nginx and SSL.
 
 ## Prerequisites
+
 1. Ensure you have an AWS account and access to create an EC2 instance.
 2. Install necessary tools (e.g., SSH client, AWS CLI).
 
 ## EC2 Instance Configuration
+
 1. **Launch an EC2 Instance**:
+
    - Select the `t2.micro` instance type (Free Tier eligible) or adjust according to your needs.
    - Allocate a volume size of **16GB** during instance creation.
    - Assign a security group with the following inbound rules:
@@ -23,7 +25,9 @@ This guide provides step-by-step instructions for setting up an AWS EC2 instance
      ```
 
 ## Long-Term Solution: Avoid Using `sudo` for npm
+
 To prevent permission issues during npm operations, configure npm for local use:
+
 1. Create a global directory for npm:
    ```bash
    mkdir ~/.npm-global
@@ -36,7 +40,9 @@ To prevent permission issues during npm operations, configure npm for local use:
    ```
 
 ## Deploying a React Application
+
 ### 1. Set Up Project Directory and Clone Repository
+
 1. Create a project directory and clone the repository:
    ```bash
    mkdir projects
@@ -46,6 +52,7 @@ To prevent permission issues during npm operations, configure npm for local use:
    ```
 
 ### 2. Update Nginx Configuration
+
 1. Increase the `server_names_hash_bucket_size` in Nginx to avoid configuration errors:
    ```bash
    sudo vim /etc/nginx/nginx.conf
@@ -61,7 +68,9 @@ To prevent permission issues during npm operations, configure npm for local use:
    ```
 
 ### 3. Add Swap Space (2 GiB)
+
 To avoid memory issues on small instances, add swap space:
+
 1. Create and enable a swap file:
    ```bash
    sudo fallocate -l 2G /swapfile
@@ -75,17 +84,34 @@ To avoid memory issues on small instances, add swap space:
    ```
 
 ### 4. Fix File and Directory Ownership
+
 Ensure proper file ownership for your project:
+
 ```bash
 sudo chown -R ec2-user:ec2-user /path/to/project
 ```
 
 ### 5. Optimize `npm install`
+
 Prevent memory exhaustion during npm installation:
+
 ```bash
 npm install --max-old-space-size=256
 ```
 
 ### This Concludes the Setup
+
 With these steps, you have completed the setup for deploying a React application to AWS with Nginx and SSL.
 
+###
+
+## Nginx Configuration
+
+The Nginx configuration for the subtitles frontend is stored in the `nginx/subtitles-frontend.conf` file.
+
+### Deployment Steps
+
+1. Copy the configuration file to the appropriate Nginx directory on your server:
+   ```bash
+   sudo cp nginx/subtitles-frontend.conf /etc/nginx/conf.d/
+   ```
