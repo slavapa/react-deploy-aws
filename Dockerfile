@@ -1,36 +1,48 @@
-# Build stage
-FROM node:16-alpine as build
-WORKDIR /app
+# Use an official Node runtime as the base image
+FROM node:lts-alpine
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Set the working directory
+WORKDIR /usr/src/app
 
-# Install dependencies
+# Accept build arguments
+ARG REACT_APP_KEYCLOAK_URL
+ARG SUBTITLES_FRONTEND_PORT
+ARG REACT_APP_KEYCLOAK_CLIENT_ID
+ARG REACT_APP_MQTT_URL
+ARG REACT_APP_MQTT_PROTOCOL
+ARG REACT_APP_KEYCLOAK_REALM
+ARG SUBTITLES_BACKEND_URL
+ARG SUBTITLES_FRONTEND_VERSION
+ARG REACT_APP_MQTT_PORT
+ARG REACT_APP_API_BASE_URL
+ARG REACT_APP_MQTT_PATH
+ARG REACT_APP_PORT
+
+# Optionally set them as environment variables in the container
+ENV REACT_APP_KEYCLOAK_URL=${REACT_APP_KEYCLOAK_URL}
+ENV SUBTITLES_FRONTEND_PORT=${SUBTITLES_FRONTEND_PORT}
+ENV REACT_APP_KEYCLOAK_CLIENT_ID=${REACT_APP_KEYCLOAK_CLIENT_ID}
+ENV REACT_APP_MQTT_URL=${REACT_APP_MQTT_URL}
+ENV REACT_APP_MQTT_PROTOCOL=${REACT_APP_MQTT_PROTOCOL}
+ENV REACT_APP_KEYCLOAK_REALM=${REACT_APP_KEYCLOAK_REALM}
+ENV SUBTITLES_BACKEND_URL=${SUBTITLES_BACKEND_URL}
+ENV SUBTITLES_FRONTEND_VERSION=${SUBTITLES_FRONTEND_VERSION}
+ENV REACT_APP_MQTT_PORT=${REACT_APP_MQTT_PORT}
+ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
+ENV REACT_APP_MQTT_PATH=${REACT_APP_MQTT_PATH}
+ENV REACT_APP_PORT=${REACT_APP_PORT}
+
+# Install app dependencies
+COPY package.json .
+COPY package-lock.json .
 RUN npm install
 
-# Copy source files
+# Add app files
 COPY . .
 
 # Build the React app
-RUN npm run build && ls -l /app/build  # Add debugging to ensure build output
+RUN npm install -g serve
+RUN npm run build -- prod
 
-# Production stage
-FROM nginx:1.23-alpine
-
-# Copy build output to Nginx's HTML directory
-COPY --from=build /app/build /usr/share/nginx/html/
-
-RUN mkdir -p /usr/share/nginx/html/devtest 
-COPY --from=build /app/build /usr/share/nginx/html/devtest/
-
-#RUN mkdir -p /usr/share/nginx/html/devtest && \
-#    cp -r /usr/share/nginx/html/static /usr/share/nginx/html/devtest/
-
-# Copy custom nginx configuration
-COPY ./nginx.conf /etc/nginx/nginx.conf
-
-# Expose the container's port
-EXPOSE 80
-
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Set the command to run the application
+CMD ["npx", "serve", "-s", "build", "--single"]
