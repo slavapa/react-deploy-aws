@@ -1,21 +1,36 @@
-# React app image
-FROM node:lts-alpine as build
-
+# Build stage
+FROM node:16-alpine as build
 WORKDIR /app
 
+# Copy package.json and package-lock.json
 COPY package*.json ./
 
-RUN npm ci
+# Install dependencies
+RUN npm install
 
+# Copy source files
 COPY . .
 
-RUN npm run build
+# Build the React app
+RUN npm run build && ls -l /app/build  # Add debugging to ensure build output
 
-# Set up the Node.js server with "serve"
-RUN npm install -g serve
+# Production stage
+FROM nginx:1.23-alpine
 
-# Expose port 80 for the container
+# Copy build output to Nginx's HTML directory
+COPY --from=build /app/build /usr/share/nginx/html/
+
+RUN mkdir -p /usr/share/nginx/html/devtest 
+COPY --from=build /app/build /usr/share/nginx/html/devtest/
+
+#RUN mkdir -p /usr/share/nginx/html/devtest && \
+#    cp -r /usr/share/nginx/html/static /usr/share/nginx/html/devtest/
+
+# Copy custom nginx configuration
+COPY ./nginx.conf /etc/nginx/nginx.conf
+
+# Expose the container's port
 EXPOSE 80
 
-# Start the server
-CMD ["serve", "-s", "build", "-l", "80"]
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
