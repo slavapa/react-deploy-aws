@@ -1,48 +1,22 @@
-# Use an official Node runtime as the base image
-FROM node:lts-alpine
+#React app image
+FROM node:lts-alpine AS build
 
-# Set the working directory
-WORKDIR /usr/src/app
+WORKDIR /app
 
-# Accept build arguments
-ARG REACT_APP_KEYCLOAK_URL
-ARG SUBTITLES_FRONTEND_PORT
-ARG REACT_APP_KEYCLOAK_CLIENT_ID
-ARG REACT_APP_MQTT_URL
-ARG REACT_APP_MQTT_PROTOCOL
-ARG REACT_APP_KEYCLOAK_REALM
-ARG SUBTITLES_BACKEND_URL
-ARG SUBTITLES_FRONTEND_VERSION
-ARG REACT_APP_MQTT_PORT
-ARG REACT_APP_API_BASE_URL
-ARG REACT_APP_MQTT_PATH
-ARG REACT_APP_PORT
+COPY package*.json ./
 
-# Optionally set them as environment variables in the container
-ENV REACT_APP_KEYCLOAK_URL=${REACT_APP_KEYCLOAK_URL}
-ENV SUBTITLES_FRONTEND_PORT=${SUBTITLES_FRONTEND_PORT}
-ENV REACT_APP_KEYCLOAK_CLIENT_ID=${REACT_APP_KEYCLOAK_CLIENT_ID}
-ENV REACT_APP_MQTT_URL=${REACT_APP_MQTT_URL}
-ENV REACT_APP_MQTT_PROTOCOL=${REACT_APP_MQTT_PROTOCOL}
-ENV REACT_APP_KEYCLOAK_REALM=${REACT_APP_KEYCLOAK_REALM}
-ENV SUBTITLES_BACKEND_URL=${SUBTITLES_BACKEND_URL}
-ENV SUBTITLES_FRONTEND_VERSION=${SUBTITLES_FRONTEND_VERSION}
-ENV REACT_APP_MQTT_PORT=${REACT_APP_MQTT_PORT}
-ENV REACT_APP_API_BASE_URL=${REACT_APP_API_BASE_URL}
-ENV REACT_APP_MQTT_PATH=${REACT_APP_MQTT_PATH}
-ENV REACT_APP_PORT=${REACT_APP_PORT}
+RUN npm ci
 
-# Install app dependencies
-COPY package.json .
-COPY package-lock.json .
-RUN npm install
-
-# Add app files
 COPY . .
 
-# Build the React app
-RUN npm install -g serve
-RUN npm run build -- prod
+RUN npm run build
 
-# Set the command to run the application
-CMD ["npx", "serve", "-s", "build", "--single"]
+
+FROM nginx:latest AS prod
+
+COPY --from=build /app/build /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/nginx.conf
+
+EXPOSE 80/tcp
+
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
